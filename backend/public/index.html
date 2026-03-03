@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat App</title>
+    <style>
+        body { font-family: Arial; max-width: 800px; margin: 50px auto; }
+        .container { display: flex; gap: 20px; }
+        .form-container { flex: 1; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        input, button { width: 100%; padding: 10px; margin: 5px 0; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .message { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        #app { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Chat App - Test</h1>
+    
+    <!-- Formulaire d'inscription -->
+    <div id="registerForm" class="form-container">
+        <h2>Inscription</h2>
+        <input type="text" id="registerName" placeholder="Nom">
+        <input type="text" id="registerPhone" placeholder="Téléphone (+33612345678)">
+        <input type="password" id="registerPassword" placeholder="Mot de passe">
+        <button onclick="register()">S'inscrire</button>
+    </div>
+
+    <!-- Formulaire de connexion -->
+    <div id="loginForm" class="form-container">
+        <h2>Connexion</h2>
+        <input type="text" id="loginPhone" placeholder="Téléphone">
+        <input type="password" id="loginPassword" placeholder="Mot de passe">
+        <button onclick="login()">Se connecter</button>
+    </div>
+
+    <!-- Interface chat (cachée par défaut) -->
+    <div id="app">
+        <h2>Bienvenue <span id="userName"></span> !</h2>
+        <button onclick="logout()">Déconnexion</button>
+        
+        <h3>Votre token :</h3>
+        <pre id="tokenDisplay" style="background: #f4f4f4; padding: 10px; overflow: auto;"></pre>
+        
+        <h3>Test route protégée :</h3>
+        <button onclick="testProtected()">Tester route protégée</button>
+        <div id="protectedResult"></div>
+    </div>
+
+    <script>
+        let currentToken = null;
+
+        async function register() {
+            const name = document.getElementById('registerName').value;
+            const phoneNumber = document.getElementById('registerPhone').value;
+            const password = document.getElementById('registerPassword').value;
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, phoneNumber, password })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showMessage('Inscription réussie ! Vous pouvez vous connecter.', 'success');
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Erreur: ' + error.message, 'error');
+            }
+        }
+
+        async function login() {
+            const phoneNumber = document.getElementById('loginPhone').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phoneNumber, password })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentToken = data.token;
+                    document.getElementById('registerForm').style.display = 'none';
+                    document.getElementById('loginForm').style.display = 'none';
+                    document.getElementById('app').style.display = 'block';
+                    document.getElementById('userName').textContent = data.user.name;
+                    document.getElementById('tokenDisplay').textContent = data.token;
+                    showMessage('Connexion réussie !', 'success');
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                showMessage('Erreur: ' + error.message, 'error');
+            }
+        }
+
+        async function testProtected() {
+            try {
+                const response = await fetch('/api/protected', {
+                    headers: {
+                        'Authorization': 'Bearer ' + currentToken
+                    }
+                });
+
+                const data = await response.json();
+                document.getElementById('protectedResult').innerHTML = 
+                    '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            } catch (error) {
+                document.getElementById('protectedResult').innerHTML = 
+                    '<div class="error">Erreur: ' + error.message + '</div>';
+            }
+        }
+
+        function logout() {
+            currentToken = null;
+            document.getElementById('registerForm').style.display = 'block';
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('app').style.display = 'none';
+            document.getElementById('loginPhone').value = '';
+            document.getElementById('loginPassword').value = '';
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            document.body.insertBefore(messageDiv, document.body.firstChild);
+            setTimeout(() => messageDiv.remove(), 3000);
+        }
+    </script>
+</body>
+</html>

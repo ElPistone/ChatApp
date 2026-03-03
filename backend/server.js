@@ -27,6 +27,16 @@ app.use(express.static('public'));
 app.get('/', (req, res) => {
     res.send('API de chat en ligne !');
 });
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/file', require('./routes/file'));
+
+// Routes de test pour vérification
+app.get('/api/protected', require('./middleware/auth'),(req, res)=>{
+    res.json({ 
+        message: 'Accès à la route protégée réussi !', 
+        user: req.user });
+}
+    )
 
 // Créer le serveur HTTP
 const server = http.createServer(app);
@@ -48,14 +58,36 @@ io.on('connection', (socket) => {
         socket.userId = userId;
         socket.join(userId); // Rejoindre une room avec son userId
         console.log(`👤 Utilisateur ${userId} authentifié sur socket ${socket.id}`);
+        
+        // Mettre à jour le statut dans la DB
+        User.findByIdAndUpdate(userId, { 
+            status: 'online',
+            lastSeen: new Date()
+        }).then(() => {
+            // Notifier les autres que l'user est en ligne
+            socket.broadcast.emit('userStatus', {
+                userId: userId,
+                status: 'online'
+            });
+        });
     });
     
     // Déconnexion
     socket.on('disconnect', () => {
         console.log('🔴 Client déconnecté:', socket.id);
         if (socket.userId) {
-            // Mettre à jour le statut offline dans la DB
-            // On fera ça plus tard
+            // Mettre à jour le statut offline
+            User.findByIdAndUpdate(socket.userId, { 
+                status: 'offline',
+                lastSeen: new Date()
+            }).then(() => {
+                // Notifier les autres
+                socket.broadcast.emit('userStatus', {
+                    userId: socket.userId,
+                    status: 'offline',
+                    lastSeen: new Date()
+                });
+            });
         }
     });
 });
