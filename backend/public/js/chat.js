@@ -333,8 +333,32 @@ function displayMessages(messages) {
     const container = document.getElementById('messages-container');
     container.innerHTML = '';
     
-    messages.forEach(message => {
-        const messageEl = createMessageElement(message);
+    // Trier les messages par date
+    const sortedMessages = messages.sort((a, b) => 
+        new Date(a.createdAt) - new Date(b.createdAt)
+    );
+    
+    sortedMessages.forEach(message => {
+        // Normaliser la structure du message
+        const normalizedMessage = {
+            _id: message._id,
+            conversationId: message.conversationId,
+            sender: {
+                _id: message.sender._id || message.sender,
+                name: message.sender.name || 
+                      (message.sender === currentUser._id ? currentUser.name : 
+                      (currentConversation?.participant?.name || 'Inconnu'))
+            },
+            type: message.type,
+            content: message.content,
+            fileId: message.fileId,
+            fileName: message.fileName,
+            fileSize: message.fileSize,
+            mimeType: message.mimeType,
+            createdAt: message.createdAt
+        };
+        
+        const messageEl = createMessageElement(normalizedMessage);
         container.appendChild(messageEl);
     });
     
@@ -346,9 +370,28 @@ function createMessageElement(message) {
     console.log('Création élément message:', message);
     
     const div = document.createElement('div');
-    div.className = `message ${message.sender._id === currentUser._id ? 'own' : ''}`;
     
-    const time = new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    // Vérifier si le message est de l'utilisateur courant
+    const isOwn = message.sender._id === currentUser._id || message.sender === currentUser._id;
+    div.className = `message ${isOwn ? 'own' : ''}`;
+    
+    // Formater l'heure
+    const time = message.createdAt ? new Date(message.createdAt).toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    // Récupérer le nom de l'expéditeur
+    let senderName = '';
+    if (message.sender.name) {
+        senderName = message.sender.name;
+    } else if (message.sender._id === currentUser._id) {
+        senderName = currentUser.name;
+    } else if (currentConversation && currentConversation.participant) {
+        senderName = currentConversation.participant.name;
+    } else {
+        senderName = 'Inconnu';
+    }
     
     let contentHtml = '';
     if (message.type === 'texte') {
@@ -364,14 +407,16 @@ function createMessageElement(message) {
                     <div class="file-name">${message.fileName || message.type}</div>
                     ${fileSize ? `<div class="file-size">${fileSize}</div>` : ''}
                 </div>
-                <button class="download-btn" onclick="downloadFile('${message.fileId}', '${message.fileName}')">Télécharger</button>
+                <button class="download-btn" onclick="downloadFile('${message.fileId}', '${message.fileName}')">
+                    <i class="bx bxs-download"></i>
+                </button>
             </div>
         `;
     }
     
     div.innerHTML = `
         <div class="message-content">
-            ${message.sender._id !== currentUser._id ? `<div class="message-sender">${message.sender.name}</div>` : ''}
+            ${!isOwn ? `<div class="message-sender">${senderName}</div>` : ''}
             ${contentHtml}
             <div class="message-time">${time}</div>
         </div>
@@ -415,10 +460,10 @@ async function uploadFile(event) {
     if (!file || !currentConversation) return;
     
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('fichier', file);
     
     try {
-        const response = await fetch('/api/files/upload', {
+        const response = await fetch('/api/file/upload', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${currentToken}`
@@ -586,12 +631,31 @@ function handleNewMessage(message) {
         return;
     }
     
+    // Normaliser le message
+    const normalizedMessage = {
+        _id: message._id,
+        conversationId: message.conversationId,
+        sender: {
+            _id: message.sender._id || message.sender,
+            name: message.sender.name || 
+                  (message.sender === currentUser._id ? currentUser.name : 
+                  (currentConversation?.participant?.name || 'Inconnu'))
+        },
+        type: message.type,
+        content: message.content,
+        fileId: message.fileId,
+        fileName: message.fileName,
+        fileSize: message.fileSize,
+        mimeType: message.mimeType,
+        createdAt: message.createdAt
+    };
+    
     // Vérifier si le message est pour la conversation courante
     if (currentConversation && message.conversationId === currentConversation._id) {
         console.log('✅ Message pour la conversation courante');
         
         const container = document.getElementById('messages-container');
-        const messageEl = createMessageElement(message);
+        const messageEl = createMessageElement(normalizedMessage);
         container.appendChild(messageEl);
         container.scrollTop = container.scrollHeight;
         
@@ -601,7 +665,7 @@ function handleNewMessage(message) {
         // Mettre à jour le lastMessage de la conversation courante
         if (currentConversation) {
             currentConversation.lastMessage = {
-                text: message.type === 'texte' ? message.content : `📎 ${message.fileName || 'fichier'}`,
+                text: message.type === 'text' ? message.content : `📎 ${message.fileName || 'Fichier'}`,
                 timestamp: message.createdAt,
                 sender: message.sender._id
             };
