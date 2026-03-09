@@ -1,0 +1,74 @@
+# 📦 Dépendances
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# 🔒 Variables d'environnement
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+
+# 📁 Dossiers de builds et logs
+dist/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.pid
+
+# 🖼️ Uploads et fichiers temporaires
+uploads/
+temp/
+tmp/
+*.tmp
+
+# 🗄️ Base de données
+*.sqlite
+*.db
+
+# 🖥️ Fichiers système
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 📝 Fichiers de configuration IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vs/
+
+# 📦 Fichiers de couverture de tests
+coverage/
+.nyc_output/
+
+# 🔐 Clés et certificats
+*.pem
+*.key
+*.crt
+cert/
+ssl/
+
+# 📚 Documentation générée
+docs/
+doc/
+
+# 🐳 Docker
+.docker/
+docker-compose.override.yml
+
+# ⚡ Fichiers spécifiques au projet
+*.pid
+*.seed
+*.pid.lock
+
+# 📦 Fichiers de l'éditeur
+.project
+.classpath
+.settings/
