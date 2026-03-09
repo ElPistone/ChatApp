@@ -222,10 +222,6 @@ io.on('connection', (socket) => {
                 createdAt: message.createdAt
             };
             
-            // Émettre le message à la conversation
-            console.log('📤 Émission du message à la conversation:', conversationId);
-            io.to(`conversation:${conversationId}`).emit('newMessage', messageData);
-            
             // Mettre à jour la dernière conversation
             conversation.lastMessage = {
                 text: type === 'texte' ? content : `📎 ${fileName || 'fichier'}`,
@@ -247,10 +243,24 @@ io.on('connection', (socket) => {
             }
             
             await conversation.save();
+            console.log('💾 Message sauvé avect statut :', message.status);
             
+            // Émettre le message à la conversation
+            console.log('📤 Émission du message à la conversation:', conversationId);
+            io.to(`conversation:${conversationId}`).emit('newMessage', messageData);
+            
+            // Emettre l'événement message envoyé
+            console.log('📤 Émission messageDelivered pour messsage:', message._id);
+            socket.emit('messageDelivered', {
+                messageId: message._id,
+                conversationId,
+                status: 'envoyé'
+            });
             // Notifier l'autre participant
             if (otherParticipant) {
+                console.log('📤 Emission messageDelivered à', otherParticipant);
                 io.to(otherParticipant.toString()).emit('conversationUpdated', {
+                    messageId: message._id,
                     conversationId,
                     lastMessage: messageData
                 });
@@ -264,12 +274,12 @@ io.on('connection', (socket) => {
     
     // Marquer les messages comme lus
     socket.on('markAsRead', async ({ conversationId }) => {
+        console.log('markAsRead reçu pour conversation: ', conversationId)
+        console.log('par Utilisateur:', socket.userId)
         try {
             const userId = socket.userId;
-            
             if (!userId || !conversationId) return;
-            
-            await Message.updateMany(
+            const result = await Message.updateMany(
                 { 
                     conversationId, 
                     'readBy.user': { $ne: userId },
@@ -291,6 +301,7 @@ io.on('connection', (socket) => {
             }
             
             // Notifier l'autre participant
+            console.log('📤 Emission messagesRead à la conversation:', conversationId);
             socket.to(`conversation:${conversationId}`).emit('messagesRead', {
                 conversationId,
                 userId

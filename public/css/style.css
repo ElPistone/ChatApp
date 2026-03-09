@@ -578,3 +578,26 @@ body {
 .message.own .message-time {
     color: rgba(255,255,255,0.7);
 }
+
+/* Statuts des messages */
+.message-status {
+    font-size: 12px;
+    margin-left: 5px;
+    transition: color 0.3s;
+}
+
+.message-status.envoyé {
+    color: #a0aec0;
+}
+
+.message-status.délivré {
+    color: #a0aec0;
+}
+
+.message-status.lu {
+    color: #4299e1 !important; /* Bleu pour lu */
+}
+
+.message.own .message-status.lu {
+    color: #90cdf4 !important; /* Bleu plus clair sur fond coloré */
+}

@@ -97,7 +97,11 @@ function initSocket() {
     });
     
     socket.on('messagesRead', (data) => {
-        handleMessagesRead(data);
+        console.log('messagesRead reçu:', data);
+        if (currentConversation && data.conversationId === currentConversation._id) {
+            // Mettre à jour l'état des messages comme lus
+            updateAllMessagesStatus('lu');
+        }
     });
     
     socket.on('conversationUpdated', (data) => {
@@ -112,6 +116,12 @@ function initSocket() {
     socket.onAny((event, ...args) => {
         console.log('📡 Événement socket:', event, args);
     });
+
+    socket.on('messageDelivered', (data) => {
+        console.log('messageDelivered reçu:', data);
+        updateMessageStatus(data.messageId, 'délivré');
+    });
+
 }
 
 
@@ -389,6 +399,7 @@ function createMessageElement(message) {
     console.log('Création élément message:', message);
     
     const div = document.createElement('div');
+    let statusIcon = '✓';
     
     // Vérifier si le message est de l'utilisateur courant
     const isOwn = message.sender._id === currentUser._id || message.sender === currentUser._id;
@@ -432,12 +443,21 @@ function createMessageElement(message) {
             </div>
         `;
     }
-    
+    if(isOwn) {
+        if (message.status === 'délivré') {
+            statusIcon = '✓✓';
+        } else if (message.status === 'lu') {
+            statusIcon = '✓✓';
+        }
+    }
+    if (!isOwn){
+        statusIcon = '';
+    }
     div.innerHTML = `
         <div class="message-content">
             ${!isOwn ? `<div class="message-sender">${senderName}</div>` : ''}
             ${contentHtml}
-            <div class="message-time">${time}</div>
+            <div class="message-time">${time} <span class="message-status ${message.status}">${statusIcon}</span></div>
         </div>
     `;
     
@@ -1006,4 +1026,49 @@ function showLogin() {
 function showNotification(message, type) {
     // À implémenter
     console.log(`${type}: ${message}`);
+}
+
+// Mettre à jour le statut d'un message spécifique
+function updateMessageStatus(messageId, newStatus) {
+    console.log('🔄 Mise à jour statut:', messageId, newStatus);
+    
+    // Parcourir tous les messages dans le DOM
+    const messages = document.querySelectorAll('.message.own');
+    
+    messages.forEach(msg => {
+        // Chercher le message qui correspond (approximatif)
+        const timeElement = msg.querySelector('.message-time');
+        if (timeElement) {
+            const statusElement = msg.querySelector('.message-status');
+            if (statusElement) {
+                // Mettre à jour la classe et le texte
+                statusElement.className = `message-status ${newStatus}`;
+                statusElement.textContent = newStatus === 'lu' ? '✓✓' : '✓✓';
+                
+                // Si c'est "lu", on met en bleu
+                if (newStatus === 'lu') {
+                    statusElement.style.color = '#4299e1';
+                }
+            }
+        }
+    });
+    
+    // Alternative plus simple : recharger les messages
+    setTimeout(() => {
+        if (currentConversation) {
+            loadMessages(currentConversation._id);
+        }
+    }, 500);
+}
+
+// Mettre à jour tous les messages comme lus
+function updateAllMessagesStatus(status) {
+    console.log('🔄 Mise à jour tous les messages:', status);
+    
+    const statusElements = document.querySelectorAll('.message.own .message-status');
+    statusElements.forEach(el => {
+        el.className = `message-status ${status}`;
+        el.textContent = '✓✓';
+        el.style.color = '#4299e1';
+    });
 }
