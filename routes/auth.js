@@ -108,7 +108,8 @@ router.post('/login', async (req, res) => {
         }
 
         console.log('✅ Utilisateur trouvé:', {
-            id: user._id,
+            _id: user._id,
+            id: user.id,
             phoneNumber: user.phoneNumber,
             name: user.name
         });

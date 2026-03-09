@@ -29,8 +29,14 @@ async function checkAuth() {
             
             if (response.ok) {
                 const data = await response.json();
+                console.log('📦 Vérification auth - données:', data);
+                
                 currentUser = data.user;
                 currentToken = token;
+                
+                console.log('👤 currentUser après vérification:', currentUser);
+                console.log('👤 currentUser._id:', currentUser._id);
+                
                 showChatInterface();
                 initSocket();
                 loadConversations();
@@ -50,6 +56,21 @@ async function checkAuth() {
 // Initialiser Socket.io
 function initSocket() {
     console.log('🔌 Initialisation socket avec userId:', currentUser._id);
+    // Vérifier que currentUser existe et a un _id
+    if (!currentUser) {
+        console.error('❌ currentUser est null');
+        return;
+    }
+    
+    const userId = currentUser._id || currentUser.id;
+    
+    if (!userId) {
+        console.error('❌ userId est undefined');
+        console.log('currentUser:', currentUser);
+        return;
+    }
+    
+    console.log('🔌 Initialisation socket avec userId:', userId);
     
     if (socket) {
         socket.disconnect();
@@ -154,11 +175,6 @@ async function login() {
     const phoneNumber = document.getElementById('login-phone').value;
     const password = document.getElementById('login-password').value;
     
-    if (!phoneNumber || !password) {
-        showToast('Veuillez remplir tous les champs', 'warning');
-        return;
-    }
-    
     try {
         const response = await fetch('/api/auth/login', {
             method: 'POST',
@@ -169,21 +185,24 @@ async function login() {
         const data = await response.json();
         
         if (response.ok) {
+            console.log('📦 Données reçues du serveur:', data);
+            console.log('📦 Structure user:', data.user);
+            
             currentUser = data.user;
             currentToken = data.token;
             localStorage.setItem('token', currentToken);
             
-            console.log('👤 Utilisateur connecté:', currentUser); 
+            console.log('👤 currentUser après assignation:', currentUser);
+            console.log('👤 currentUser._id:', currentUser._id);
+            console.log('👤 currentUser.id:', currentUser.id);
             
             showToast('Connexion réussie !', 'success');
             
             setTimeout(() => {
                 showChatInterface();
-                initSocket(); // Ici currentUser._id doit être défini
+                initSocket();
                 loadConversations();
             }, 500);
-        } else {
-            showToast(data.message, 'error');
         }
     } catch (error) {
         console.error('Erreur:', error);
